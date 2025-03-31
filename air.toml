@@ -1,0 +1,16 @@
+air.toml
+root = "." # The root directory of the project
+tmp_dir = "tmp" # The temporary directory where air will store its temporary files
+
+[build] # The build configuration
+  bin = "./tmp/main"
+  cmd = "go build -o ./tmp/main ."
+  exclude_dir = [ "tmp", "client"]
+  exclude_file = []
+  exclude_regex = []
+  exclude_unchanged = false
+  full_bin = ""
+  include_dir = []
+  include_ext = ["go", "tpl", "tmpl"]
+
+command to run air - `air -c air.toml`
