@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -72,7 +73,15 @@ func main() {
 		fmt.Println("Pinged MongoDB server")
 	}
 
-	app := fiber.New()                       // Create a new Fiber app
+	app := fiber.New() // Create a new Fiber app
+
+	// ✅ Autoriser toutes les origines (à adapter en prod)
+	app.Use(cors.New(cors.Config{
+		AllowOrigins: "http://localhost:3000",
+		AllowMethods: "GET,POST,PATCH,DELETE",
+		AllowHeaders: "Content-Type, Authorization",
+	}))
+
 	app.Get("/api/todos", getTodos)          // Get all todos
 	app.Post("/api/todos", createTodo)       // Create a new todo
 	app.Patch("/api/todos/:id", updateTodo)  // Update a todo

@@ -11,6 +11,6 @@ tmp_dir = "tmp" # The temporary directory where air will store its temporary fil
   exclude_unchanged = false
   full_bin = ""
   include_dir = []
-  include_ext = ["go", "tpl", "tmpl"]
+  include_ext = ["go", "tpl", "tmpl", "client", "node_modules", "vendor"]
 
 command to run air - `air -c air.toml`
