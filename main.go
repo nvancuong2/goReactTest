@@ -71,9 +71,9 @@ func main() {
 		fmt.Println("Pinged MongoDB server")
 	}
 
-	app := fiber.New()              // Create a new Fiber app
-	app.Get("/api/todos", getTodos) // Get all todos
-	//app.Post("/api/todos", createTodo)       // Create a new todo
+	app := fiber.New()                 // Create a new Fiber app
+	app.Get("/api/todos", getTodos)    // Get all todos
+	app.Post("/api/todos", createTodo) // Create a new todo
 	//app.Patch("/api/todos/:id", updateTodo)  // Update a todo
 	//app.Delete("/api/todos/:id", deleteTodo) // Delete a todo
 
@@ -83,6 +83,14 @@ func main() {
 		port = "5000"
 	}
 	fmt.Println("Server is running on port: ", port) // Print the port
+
+	// Start the server
+	err = app.Listen(":" + port)
+	if err != nil {
+		log.Fatalf("Failed to start server: %v", err)
+	} else {
+		fmt.Println("Server is ready to accept requests")
+	}
 }
 
 func getTodos(c *fiber.Ctx) error {
@@ -110,10 +118,16 @@ func getTodos(c *fiber.Ctx) error {
 
 }
 
-//func createTodo(c *fiber.Ctx) error {
-// Create a new todo in the database
-//return c.SendString("Create a new todo")
-//}
+func createTodo(c *fiber.Ctx) error {
+	// Create a new todo in the database
+	var todo Todo
+	if err := c.BodyParser(&todo); err != nil { // Parse the request body into a todo object
+		return c.Status(400).SendString("Error parsing todo") // Handle error
+	}
+
+	return c.SendString("Create a new todo")
+}
+
 //func updateTodo(c *fiber.Ctx) error {
 // Update a todo in the database
 //return c.SendString("Update a todo")
