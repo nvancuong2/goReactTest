@@ -177,5 +177,5 @@ func deleteTodo(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(500).SendString("Error deleting todo") // Handle error
 	}
-	return c.Status(200).JSON(fiber.Map{"success delete": true}) // Return success response
+	return c.Status(200).JSON(fiber.Map{"success delete": true}) // Return success delete response
 }
