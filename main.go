@@ -49,22 +49,8 @@ func main() {
 	} else {
 		fmt.Println("Connected to MongoDB")
 	}
-	err = client.Ping(ctx, nil) // Ping the MongoDB server
-	if err != nil {
-		log.Fatal(err) // Handle error
-	} else {
-		fmt.Println("Pinged MongoDB server")
-	}
+
 	// Create a new collection
-
-	// collection = client.Database("test").Collection("todos") // Create a new collection
-	defer func() {
-		if err = client.Disconnect(ctx); err != nil {
-			panic(err)
-		}
-	}() // Close the MongoDB connection
-
-	// Check the connection
 	collection = client.Database("todo").Collection("todos") // Create a collection
 	if err != nil {
 		fmt.Println(err)
@@ -72,18 +58,33 @@ func main() {
 		fmt.Println("Collection created")
 	}
 
-	app := fiber.New()                       // Create a new Fiber app
-	app.Get("/api/todos", getTodos)          // Get all todos
-	app.Post("/api/todos", createTodo)       // Create a new todo
-	app.Patch("/api/todos/:id", updateTodo)  // Update a todo
-	app.Delete("/api/todos/:id", deleteTodo) // Delete a todo
+	defer func() {
+		if err = client.Disconnect(ctx); err != nil {
+			panic(err)
+		}
+	}() // Close the MongoDB connection
+
+	err = client.Ping(ctx, nil) // Ping the MongoDB server
+	if err != nil {
+		log.Fatal(err) // Handle error
+	} else {
+		fmt.Println("Pinged MongoDB server")
+	}
+
+	app := fiber.New()              // Create a new Fiber app
+	app.Get("/api/todos", getTodos) // Get all todos
+	//app.Post("/api/todos", createTodo)       // Create a new todo
+	//app.Patch("/api/todos/:id", updateTodo)  // Update a todo
+	//app.Delete("/api/todos/:id", deleteTodo) // Delete a todo
 
 	port := os.Getenv("PORT") // Get the port from environment variables
+	print("PORT: ", port)     // Print the port
 	if port == "" {           // Set a default port if not specified
 		port = "5000"
 	}
 	fmt.Println("Server is running on port: ", port) // Print the port
 }
+
 func getTodos(c *fiber.Ctx) error {
 	// Get all todos from the database
 	var todos []Todo
@@ -99,20 +100,25 @@ func getTodos(c *fiber.Ctx) error {
 			return c.Status(500).SendString("Error decoding todo") // Handle error
 		}
 		todos = append(todos, todo) // Append the todo to the slice
-		return c.JSON(todos)        // Return the todos as JSON
 	}
-	return nil // Ensure the function ends properly
+
+	if err := cursor.Err(); err != nil { // Check for errors during iteration
+		return c.Status(500).SendString("Error iterating through todos") // Handle error
+	}
+
+	return c.JSON(todos) // Return the todos as JSON
+
 }
 
-func createTodo(c *fiber.Ctx) error {
-	// Create a new todo in the database
-	return c.SendString("Create a new todo")
-}
-func updateTodo(c *fiber.Ctx) error {
-	// Update a todo in the database
-	return c.SendString("Update a todo")
-}
-func deleteTodo(c *fiber.Ctx) error {
-	// Delete a todo from the database
-	return c.SendString("Delete a todo")
-}
+//func createTodo(c *fiber.Ctx) error {
+// Create a new todo in the database
+//return c.SendString("Create a new todo")
+//}
+//func updateTodo(c *fiber.Ctx) error {
+// Update a todo in the database
+//return c.SendString("Update a todo")
+//}
+//func deleteTodo(c *fiber.Ctx) error {
+// Delete a todo from the database
+//return c.SendString("Delete a todo")
+//}
