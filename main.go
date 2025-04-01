@@ -9,14 +9,15 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type Todo struct {
-	ID        int    `json:"id" bson:"_id"`
-	Completed bool   `json:"title"`
-	Body      string `json:"body"`
+	ID        primitive.ObjectID `json:"id,omitempty" bson:"_id, omitempty"`
+	Completed bool               `json:"title"`
+	Body      string             `json:"body"`
 }
 
 var collection *mongo.Collection
@@ -71,11 +72,11 @@ func main() {
 		fmt.Println("Pinged MongoDB server")
 	}
 
-	app := fiber.New()                 // Create a new Fiber app
-	app.Get("/api/todos", getTodos)    // Get all todos
-	app.Post("/api/todos", createTodo) // Create a new todo
-	//app.Patch("/api/todos/:id", updateTodo)  // Update a todo
-	//app.Delete("/api/todos/:id", deleteTodo) // Delete a todo
+	app := fiber.New()                       // Create a new Fiber app
+	app.Get("/api/todos", getTodos)          // Get all todos
+	app.Post("/api/todos", createTodo)       // Create a new todo
+	app.Patch("/api/todos/:id", updateTodo)  // Update a todo
+	app.Delete("/api/todos/:id", deleteTodo) // Delete a todo
 
 	port := os.Getenv("PORT") // Get the port from environment variables
 	print("PORT: ", port)     // Print the port
@@ -120,19 +121,61 @@ func getTodos(c *fiber.Ctx) error {
 
 func createTodo(c *fiber.Ctx) error {
 	// Create a new todo in the database
-	var todo Todo
-	if err := c.BodyParser(&todo); err != nil { // Parse the request body into a todo object
+	todo := new(Todo)
+
+	// Parse the request body into a todo object
+	if err := c.BodyParser(&todo); err != nil {
 		return c.Status(400).SendString("Error parsing todo") // Handle error
 	}
+	if todo.Body == "" {
+		return c.Status(400).SendString("Todo body is required") // Handle error
+	}
 
-	return c.SendString("Create a new todo")
+	// Generate a new ObjectID for the todo
+	todo.ID = primitive.NewObjectID()
+
+	// Insert the todo into the database
+	_, err := collection.InsertOne(context.Background(), todo)
+	if err != nil {
+		return c.Status(500).SendString("Error inserting todo") // Handle error
+	}
+
+	// Return the created todo as JSON
+	return c.Status(201).JSON(todo)
 }
 
-//func updateTodo(c *fiber.Ctx) error {
-// Update a todo in the database
-//return c.SendString("Update a todo")
-//}
-//func deleteTodo(c *fiber.Ctx) error {
-// Delete a todo from the database
-//return c.SendString("Delete a todo")
-//}
+func updateTodo(c *fiber.Ctx) error {
+	// Update a todo in the database
+	// Get the todo ID from the URL parameters
+	id := c.Params("id")
+	objectID, err := primitive.ObjectIDFromHex(id) // Convert the ID to an ObjectID
+	if err != nil {
+		return c.Status(400).SendString("Invalid todo ID") // Handle error
+	}
+	filter := bson.M{"_id": objectID}                                   // Create a filter to find the todo by ID
+	update := bson.M{"$set": bson.M{"completed": true}}                 // Create an update to mark the todo as completed
+	_, err = collection.UpdateOne(context.Background(), filter, update) // Update the todo in the database
+	if err != nil {
+		return c.Status(500).SendString("Error updating todo") // Handle error
+	}
+	if id == "" {
+		return c.Status(400).SendString("Todo ID is required") // Handle error
+	}
+
+	return c.Status(200).JSON(fiber.Map{"success": true}) // Return success response
+}
+
+func deleteTodo(c *fiber.Ctx) error {
+	// Delete a todo from the database
+	id := c.Params("id")                           // Get the todo ID from the URL parameters
+	objectID, err := primitive.ObjectIDFromHex(id) // Convert the ID to an ObjectID
+	if err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "Invalid todo ID"}) // Handle error
+	}
+	filter := bson.M{"_id": objectID}                           // Create a filter to find the todo by ID
+	_, err = collection.DeleteOne(context.Background(), filter) // Delete the todo from the database
+	if err != nil {
+		return c.Status(500).SendString("Error deleting todo") // Handle error
+	}
+	return c.Status(200).JSON(fiber.Map{"success delete": true}) // Return success response
+}
